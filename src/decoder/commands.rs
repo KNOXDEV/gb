@@ -42,8 +42,8 @@ pub enum DestinationOperand {
     RegisterLocation(Register),
     // a particular wide (16 bit) register to save to
     WideRegisterLocation(WideRegister),
-    // these references are ALWAYS stored in HL
-    WideRegisterReference,
+    // these references are usually stored in HL but not always
+    WideRegisterReference(WideRegister),
 }
 
 // an operand indicating an input value
@@ -57,8 +57,10 @@ pub enum SourceOperand {
     WideImmediateReference(MemoryAddress),
     // the value in a particular register
     RegisterValue(Register),
-    // these references are ALWAYS stored in HL
-    WideRegisterReference,
+    // a particular wide (16 bit) register to save to
+    WideRegisterValue(WideRegister),
+    // these references are usually stored in HL but not always
+    WideRegisterReference(WideRegister),
     // a signed offset away from the stack pointer
     StackPointerOffset(AddressOffset),
 }
