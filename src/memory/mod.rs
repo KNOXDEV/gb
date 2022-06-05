@@ -1,4 +1,4 @@
-use crate::memory::MemoryAddress::{LowROM, SwitchableROM};
+use crate::memory::MemoryAddress::{InteruptEnableRegister, LowROM, SwitchableROM};
 
 enum MemoryAddress {
     InteruptEnableRegister,
@@ -31,5 +31,6 @@ fn decode_address(address: u16) -> MemoryAddress {
     match address {
         0x0000..=0x3FFF => LowROM(address),
         0x4000..=0x7FFF => SwitchableROM(address - 0x4000),
+        _ => InteruptEnableRegister
     }
 }
