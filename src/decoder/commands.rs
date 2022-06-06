@@ -1,5 +1,6 @@
 type MemoryAddress = u16;
-type AddressOffset = i8;
+type SignedAddressOffset = i8;
+type AddressOffset = u8;
 type BitLabel = u8; // between 0-7
 
 #[derive(Debug)]
@@ -36,10 +37,14 @@ pub enum FlagCondition {
 // an operand indicating where an output can be stored
 #[derive(Debug)]
 pub enum DestinationOperand {
+    // the bottom 8 bits of an immediate reference (the top bits are determined from context)
+    ImmediateReference(u8),
     // an immediate 16 bit location in memory
     WideImmediateReference(MemoryAddress),
     // a particular (8 bit) register to save to
     RegisterLocation(Register),
+    // a particular (8 bit) register that contains the bottom byte of an address
+    RegisterReference(Register),
     // a particular wide (16 bit) register to save to
     WideRegisterLocation(WideRegister),
     // these references are usually stored in HL but not always
@@ -51,18 +56,22 @@ pub enum DestinationOperand {
 pub enum SourceOperand {
     // an immediate 8 bit value
     ImmediateValue(u8),
+    // the bottom 8 bits of an immediate reference (the top bits are determined from context)
+    ImmediateReference(u8),
     // an immediate 16 bit value
     WideImmediateValue(u16),
     // an immediate 16 bit location in memory
     WideImmediateReference(MemoryAddress),
     // the value in a particular register
     RegisterValue(Register),
+    // a particular (8 bit) register that contains the bottom byte of an address
+    RegisterReference(Register),
     // a particular wide (16 bit) register to save to
     WideRegisterValue(WideRegister),
     // these references are usually stored in HL but not always
     WideRegisterReference(WideRegister),
     // a signed offset away from the stack pointer
-    StackPointerOffset(AddressOffset),
+    StackPointerOffset(SignedAddressOffset),
 }
 
 // this represents the highest level of abstraction that the emulator will run
@@ -112,7 +121,7 @@ pub enum Command {
     BitReset(DestinationOperand, BitLabel),
     // jumps, calls, returns
     Jump(DestinationOperand, FlagCondition),
-    JumpAdd(AddressOffset, FlagCondition),
+    JumpAdd(SignedAddressOffset, FlagCondition),
     Call(DestinationOperand, FlagCondition),
     Restart(AddressOffset),
     Return(FlagCondition),
