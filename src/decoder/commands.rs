@@ -80,10 +80,13 @@ pub enum SourceOperand {
 pub enum Command {
     // loads
     Load(DestinationOperand, SourceOperand),
-    LoadDecrement(DestinationOperand, SourceOperand),
-    LoadIncrement(DestinationOperand, SourceOperand),
+    // for these loads we can omit the source because these are always HL/A pairs
+    LoadDecrement(DestinationOperand),
+    LoadIncrement(DestinationOperand),
     Push(SourceOperand),
     Pop(DestinationOperand),
+    // special case add for the stack pointer only, used in one place
+    AddStackPointer(i8),
     // ALU
     // most 8-bit arithmetic is done on A, while for 16-bit we use HL, so for those operations, we omit an operand
     Add(SourceOperand),

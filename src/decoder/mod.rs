@@ -1,8 +1,6 @@
 mod commands;
+mod tables;
 
-use crate::decoder::commands::Command::{
-    Add, DisableInterrupts, EnableInterrupts, Load, Return, ReturnEnableInterrupts,
-};
 use crate::decoder::commands::{
     Command, DestinationOperand, FlagCondition, Register, SourceOperand, WideRegister,
 };
@@ -77,17 +75,6 @@ fn match_flag_condition(bits: u8) -> FlagCondition {
     }
 }
 
-// two bits of an opcode will sometimes determine a wide register in the context of a load
-fn match_wide_register_reference(bits: u8) -> WideRegister {
-    match bits & 0b11 {
-        0x0 => WideRegister::BC,
-        0x1 => WideRegister::DE,
-        0x2 => WideRegister::HL,
-        0x3 => WideRegister::HL,
-        _ => panic!("invalid wide register reference bits"),
-    }
-}
-
 // two bits to identify a particular wide register in the context of a stack operation
 fn match_wide_register_stack(bits: u8) -> WideRegister {
     match bits & 0b11 {
@@ -96,6 +83,29 @@ fn match_wide_register_stack(bits: u8) -> WideRegister {
         0x2 => WideRegister::HL,
         0x3 => WideRegister::AF,
         _ => panic!("invalid wide register stack bits"),
+    }
+}
+
+fn decode_prefixed_instruction(opcode: u8) -> Command {
+    // the entire prefixed command table operates on the same destination pattern, fortunately
+    let target = match_destination(opcode);
+    // split the prefix table into four quadrants
+    match (opcode >> 6) & 0b11 {
+        0b00 => match (opcode >> 3) & 0b111 {
+            0b000 => Command::RotateLeftCarry(target),
+            0b001 => Command::RotateRightCarry(target),
+            0b010 => Command::RotateLeft(target),
+            0b011 => Command::RotateRight(target),
+            0b100 => Command::ShiftLeftCarry(target),
+            0b101 => Command::ShiftRightCarry(target),
+            0b110 => Command::Swap(target),
+            0b111 => Command::ShiftRightLogical(target),
+            _ => panic!("failed to decode rotate / shift opcode"),
+        },
+        0b01 => Command::BitTest(target, (opcode >> 3) & 0b111),
+        0b10 => Command::BitReset(target, (opcode >> 3) & 0b111),
+        0b11 => Command::BitSet(target, (opcode >> 3) & 0b111),
+        _ => panic!("failed to decode prefixed opcode"),
     }
 }
 
@@ -123,7 +133,7 @@ impl<I: Iterator<Item = u8>> Iterator for Decoder<I> {
         let opcode = self.iter.next()?;
         Some(
             // the top two bits will determine if we are in the load section, alu, or other
-            match opcode >> 6 & 0b11 {
+            match (opcode >> 6) & 0b11 {
                 // load makes up a quarter of the entire table, fortunately
                 // special case: handle halt
                 0b01 if opcode == 0x76 => Command::Halt,
@@ -142,7 +152,7 @@ impl<I: Iterator<Item = u8>> Iterator for Decoder<I> {
                     // conditional relative jumps
                     // note this is not where 0X and 1X are handled,
                     // those are special cases handled in the else block
-                    0x0 | 0x8 if opcode & 0b10000 != 0 => Command::JumpAdd(
+                    0x0 | 0x8 if opcode & 0b100000 != 0 => Command::JumpAdd(
                         self.get_immediate_signed()?,
                         match_flag_condition(opcode >> 3),
                     ),
@@ -153,10 +163,12 @@ impl<I: Iterator<Item = u8>> Iterator for Decoder<I> {
                     ),
                     // loads to wide references
                     0x2 => Command::Load(
-                        DestinationOperand::WideRegisterReference(match_wide_register_reference(
-                            opcode >> 4,
-                        )),
+                        DestinationOperand::WideRegisterReference(match_wide_register(opcode >> 4)),
                         SourceOperand::RegisterValue(Register::A),
+                    ),
+                    0xA if opcode & 0b10000 == 0 => Command::Load(
+                        DestinationOperand::RegisterLocation(Register::A),
+                        SourceOperand::WideRegisterReference(match_wide_register(opcode >> 4)),
                     ),
                     0x3 => Command::Increment(DestinationOperand::WideRegisterLocation(
                         match_wide_register(opcode >> 4),
@@ -173,13 +185,6 @@ impl<I: Iterator<Item = u8>> Iterator for Decoder<I> {
                     0x9 => Command::Add(SourceOperand::WideRegisterValue(match_wide_register(
                         opcode >> 4,
                     ))),
-                    // weird reference loads into A idk
-                    0xA => Command::Load(
-                        DestinationOperand::RegisterLocation(Register::A),
-                        SourceOperand::WideRegisterReference(match_wide_register_reference(
-                            opcode >> 4,
-                        )),
-                    ),
                     // decrement a wide register
                     0xB => Command::Decrement(DestinationOperand::WideRegisterLocation(
                         match_wide_register(opcode >> 4),
@@ -266,40 +271,38 @@ impl<I: Iterator<Item = u8>> Iterator for Decoder<I> {
                                 // unconditional returns
                                 0x9 => {
                                     if opcode & 0x10 == 0 {
-                                        Return(FlagCondition::NoCheck)
+                                        Command::Return(FlagCondition::NoCheck)
                                     } else {
-                                        ReturnEnableInterrupts
+                                        Command::ReturnEnableInterrupts
                                     }
                                 }
                                 // prefix for larger codes
-                                0xB => {
-                                    todo!()
-                                }
+                                0xB => decode_prefixed_instruction(self.get_immediate()?),
                                 _ => panic!("invalid last quarter opcode"),
                             }
                         } else {
                             // no patterns, just special cases at this point
                             match opcode {
-                                0xE0 => Load(
+                                0xE0 => Command::Load(
                                     DestinationOperand::ImmediateReference(self.get_immediate()?),
                                     SourceOperand::RegisterValue(Register::A),
                                 ),
-                                0xF0 => Load(
+                                0xF0 => Command::Load(
                                     DestinationOperand::RegisterReference(Register::A),
                                     SourceOperand::ImmediateReference(self.get_immediate()?),
                                 ),
-                                0xE2 => Load(
+                                0xE2 => Command::Load(
                                     DestinationOperand::RegisterReference(Register::C),
                                     SourceOperand::RegisterValue(Register::A),
                                 ),
-                                0xF2 => Load(
+                                0xF2 => Command::Load(
                                     DestinationOperand::RegisterReference(Register::A),
                                     SourceOperand::RegisterReference(Register::C),
                                 ),
-                                0xF3 => DisableInterrupts,
-                                0xFB => EnableInterrupts,
-                                0xE8 => todo!("add to the stack pointer"),
-                                0xF8 => Load(
+                                0xF3 => Command::DisableInterrupts,
+                                0xFB => Command::EnableInterrupts,
+                                0xE8 => Command::AddStackPointer(self.get_immediate_signed()?),
+                                0xF8 => Command::Load(
                                     DestinationOperand::WideRegisterLocation(WideRegister::HL),
                                     SourceOperand::StackPointerOffset(self.get_immediate_signed()?),
                                 ),
