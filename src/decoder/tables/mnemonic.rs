@@ -1,58 +1,5 @@
+use crate::decoder::commands::Mnemonic;
 use crate::decoder::tables::tablebuilder::TableBuilder;
-
-#[derive(Debug, Copy, Clone)]
-enum Mnemonic {
-    // loads
-    // we omit some special types of loads because they can be implemented the same
-    LD,
-    LDD,
-    LDI,
-    PUSH,
-    POP,
-    // alu
-    ADD,
-    ADC,
-    SUB,
-    SBC,
-    AND,
-    OR,
-    XOR,
-    CP,
-    INC,
-    DEC,
-    // misc
-    SWAP,
-    DAA,
-    CPL,
-    CCF,
-    SCF,
-    NOP,
-    HALT,
-    STOP,
-    DI,
-    EI,
-    PREFIX,
-    // rotates and shifts
-    // we omit the A-specific ones since they can be implemented the same way
-    RLC,
-    RL,
-    RRC,
-    RR,
-    SLA,
-    SRA,
-    SRL,
-    // bits
-    BIT,
-    SET,
-    RES,
-    // jumps, calls, restarts, returns
-    JP,
-    JR,
-    CALL,
-    RST,
-    RET,
-    RETI,
-}
 
 const MNEMONIC_TABLE: [Mnemonic; 256] = TableBuilder::new(Mnemonic::NOP)
     // top quarter

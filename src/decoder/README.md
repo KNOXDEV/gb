@@ -1,9 +1,10 @@
 # decoder
 
-Mainly an iterator that takes in a slice of unsigned 8 bit values
-and decodes them.
+Just a decoder for the Gameboy's LR35902.
 
-The opcode set in question is LR35902.
+What makes this module interesting is that I managed to implement
+the primary decoding functionality in a const function. That means
+you can potentially decode games at compile time and ship them that way...
 
 ### sources
 
