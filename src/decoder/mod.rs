@@ -1,14 +1,16 @@
-use crate::decoder::commands::{FlagCondition, Mnemonic};
+use crate::decoder::commands::FlagCondition;
 
 mod commands;
 mod tables;
+#[cfg(test)]
+mod tests;
 
 // flag check rule. its simpler to just have this instead of keeping a table for it
 #[inline]
 const fn decode_flag_check(opcode: u8) -> FlagCondition {
     match opcode {
         // catch non-cases
-        0x18 | 0xC3 | 0xE9 | 0xCD => FlagCondition::NoCheck,
+        0x18 | 0xC3 | 0xE9 | 0xCD | 0xC9 => FlagCondition::NoCheck,
         _ => match (opcode >> 3) & 0b11 {
             0 => FlagCondition::NotZero,
             1 => FlagCondition::Zero,
@@ -35,4 +37,4 @@ const fn decode_restart_address(opcode: u8) -> u16 {
 }
 
 // why does this take a SLICE to an opcode? well, many
-const fn decode_opcode(opcode: &[u8]) -> Mnemonic {}
+// const fn decode_opcode(opcode: &[u8]) -> Mnemonic {}

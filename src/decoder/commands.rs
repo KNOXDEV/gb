@@ -34,7 +34,7 @@ pub enum MemoryOperand {
     WideImmediateReference,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FlagCondition {
     NoCheck,
     NotZero,
