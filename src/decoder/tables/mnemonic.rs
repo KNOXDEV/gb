@@ -1,7 +1,7 @@
 use crate::decoder::commands::Mnemonic;
 use crate::decoder::tables::tablebuilder::TableBuilder;
 
-const MNEMONIC_TABLE: [Mnemonic; 256] = TableBuilder::new(Mnemonic::NOP)
+pub const MNEMONIC_TABLE: [Mnemonic; 256] = TableBuilder::new(Mnemonic::NOP)
     // top quarter
     // 12 loads (4 to be overwritten later)
     .bitmask_map(0b11000011, 0x2, Mnemonic::LD)
@@ -104,7 +104,7 @@ const MNEMONIC_TABLE: [Mnemonic; 256] = TableBuilder::new(Mnemonic::NOP)
     .bitmask_map(0b11111111, 0xCD, Mnemonic::CALL)
     .build();
 
-const PREFIXED_MNEMONIC_TABLE: [Mnemonic; 256] = TableBuilder::new(Mnemonic::NOP)
+pub const PREFIXED_MNEMONIC_TABLE: [Mnemonic; 256] = TableBuilder::new(Mnemonic::NOP)
     // first quarter
     .bitmask_map_sequence(
         0b11111000,

@@ -1,4 +1,4 @@
-use crate::memory::MemoryAddress::{InteruptEnableRegister, LowROM, SwitchableROM};
+use crate::cartridge::Cartridge;
 
 enum MemoryAddress {
     InteruptEnableRegister,
@@ -27,10 +27,36 @@ enum MemoryAddress {
     // 0000
 }
 
-fn decode_address(address: u16) -> MemoryAddress {
-    match address {
-        0x0000..=0x3FFF => LowROM(address),
-        0x4000..=0x7FFF => SwitchableROM(address - 0x4000),
-        _ => InteruptEnableRegister
+pub trait ReadOnlyMemory {
+    fn read(&self, addr: u16) -> u8;
+    fn read_wide(&self, addr: u16) -> u16 {
+        u16::from_le_bytes([self.read(addr), self.read(addr + 1)])
+    }
+}
+
+pub trait ReadWriteMemory: ReadOnlyMemory {
+    fn write(&mut self, addr: u16, value: u8);
+    fn write_wide(&mut self, addr: u16, value: u16) {
+        let bytes = value.to_le_bytes();
+        self.write(addr, bytes[0]);
+        self.write(addr + 1, bytes[1]);
+    }
+}
+
+struct GameBoyMemory<T: Cartridge> {
+    cartridge: T,
+    // TODO: add other memory regions
+}
+
+// these should match depending on the region being read / written to
+impl<T: Cartridge> ReadOnlyMemory for GameBoyMemory<T> {
+    fn read(&self, addr: u16) -> u8 {
+        todo!()
+    }
+}
+
+impl<T: Cartridge> ReadWriteMemory for GameBoyMemory<T> {
+    fn write(&mut self, addr: u16, value: u8) {
+        todo!()
     }
 }

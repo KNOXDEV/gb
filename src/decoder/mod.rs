@@ -1,4 +1,5 @@
-use crate::decoder::commands::FlagCondition;
+use crate::decoder::commands::{FlagCondition, Mnemonic};
+use crate::decoder::tables::mnemonic::{MNEMONIC_TABLE, PREFIXED_MNEMONIC_TABLE};
 
 mod commands;
 mod tables;
@@ -36,5 +37,8 @@ const fn decode_restart_address(opcode: u8) -> u16 {
     (opcode - 0xC7) as u16
 }
 
-// why does this take a SLICE to an opcode? well, many
-// const fn decode_opcode(opcode: &[u8]) -> Mnemonic {}
+#[inline]
+const fn decode_mnemonic(opcode: u8) -> Mnemonic {
+    // MNEMONIC_TABLE[opcode as usize]
+    todo!();
+}

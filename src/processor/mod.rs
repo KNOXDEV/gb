@@ -1,22 +1,33 @@
-
-type Register = u8;
 type WideRegister = u16;
 
 struct Processor {
     // general purpose registers
-    a: Register,
-    b: Register,
-    c: Register,
-    d: Register,
-    e: Register,
-    h: Register,
-    l: Register,
-
-    // so called f register, but for flags. from highest to lowest bit:
-    // zero, subtraction, half carry, and carry flag. The lowest four bits are not used.
-    flags: Register,
+    af: WideRegister,
+    bc: WideRegister,
+    de: WideRegister,
+    hl: WideRegister,
 
     // somewhat important registers
-    program_counter: WideRegister, // initialized to 0x0100 at startup
-    stack_pointer: WideRegister // initialized to 0xFFFE at startup, but 0xE000 would probably be more useful
+    program_counter: WideRegister,
+    stack_pointer: WideRegister,
+}
+
+impl Processor {
+    pub fn new() -> Self {
+        Processor {
+            // these initial values are recovered from PanDocs
+            af: 0x01B0,
+            bc: 0x0013,
+            de: 0x00D8,
+            hl: 0x014D,
+            program_counter: 0x0100,
+            stack_pointer: 0xFFFE,
+        }
+    }
+
+    // interpret the next instruction and execute
+    // this takes in the immutable program data (ROM) as well as the mutable memory space (RAM)
+    pub fn tick(&mut self) {
+        // decode the opcode at the current program counter
+    }
 }
